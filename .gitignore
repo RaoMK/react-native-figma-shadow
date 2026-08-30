@@ -1,0 +1,20 @@
+node_modules/
+lib/
+coverage/
+
+# native build output
+android/build/
+android/.cxx/
+android/.gradle/
+ios/build/
+*.xcworkspace
+Pods/
+
+# os / editor
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# test artifacts
+/tmp/fs_*.ppm

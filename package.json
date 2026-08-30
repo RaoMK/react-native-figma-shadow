@@ -1,0 +1,104 @@
+{
+  "name": "react-native-figma-shadow",
+  "version": "0.1.0",
+  "description": "Paste a CSS box-shadow from Figma and get a pixel-identical shadow on iOS and Android. New Architecture, zero peer dependencies.",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index",
+  "source": "src/index",
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "ios",
+    "cpp",
+    "docs",
+    "*.podspec",
+    "react-native.config.js",
+    "!ios/build",
+    "!android/build",
+    "!android/.cxx",
+    "!cpp/test",
+    "!**/__tests__",
+    "!**/.*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "clean": "del-cli lib",
+    "prepare": "bob build",
+    "cpp-test": "c++ -std=c++17 -O2 -Wall -Wextra -Icpp/figmashadow cpp/test/test_main.cpp cpp/figmashadow/*.cpp -o /tmp/fstest && /tmp/fstest"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android",
+    "fabric",
+    "new-architecture",
+    "shadow",
+    "box-shadow",
+    "elevation",
+    "figma",
+    "css"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mowgli/react-native-figma-shadow.git"
+  },
+  "author": "mowglijuddi@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mowgli/react-native-figma-shadow/issues"
+  },
+  "homepage": "https://github.com/mowgli/react-native-figma-shadow#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "@react-native/babel-preset": "0.76.0",
+    "@react-native/eslint-config": "0.76.0",
+    "@types/jest": "^29.5.12",
+    "@types/react": "^18.2.44",
+    "del-cli": "^5.1.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "react": "18.3.1",
+    "react-native": "0.76.0",
+    "react-native-builder-bob": "^0.30.2",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "jest": {
+    "preset": "react-native",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/lib/"
+    ]
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  },
+  "codegenConfig": {
+    "name": "RNFigmaShadowSpec",
+    "type": "components",
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.figmashadow"
+    }
+  }
+}
