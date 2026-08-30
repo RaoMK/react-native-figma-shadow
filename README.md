@@ -136,6 +136,43 @@ computeBleed(parseBoxShadow('0 4px 20px rgba(0,0,0,.15)'));
 4. iOS sets the bitmap as a `CALayer`'s `contents`; Android blits it in
    `dispatchDraw` behind the children. Neither platform does any blur math.
 
+## How it compares
+
+| | **figma-shadow** | core RN `boxShadow` | [shadow-2] | [Skia] `<Shadow>` | [fast-shadow] | [drop-shadow] |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| Identical on iOS **and** Android | ✅ one rasterizer | ⚠️ different blur per platform | ⚠️ SVG, close-ish | ✅ one engine | ⚠️ tuned, not exact | ❌ iOS≠Android |
+| Paste a CSS / Figma `box-shadow` string | ✅ | ✅ | ❌ props | ❌ props | ❌ props | ❌ props |
+| True Gaussian blur | ✅ analytic | ✅ | ❌ gradient approx | ✅ | ✅ native | ✅ native |
+| Multiple shadows · `inset` · spread | ✅·✅·✅ | ✅·✅·✅ | ❌·❌·✅ | ✅·✅·⚠️ | ❌·❌·❌ | ❌·❌·❌ |
+| Peer dependencies | **none** | none | `react-native-svg` | `@shopify/react-native-skia` | none | none |
+| Added download / arch | **~50–100 KB** | 0 | ~0.5–1 MB | **~4–8 MB** | ~10–20 KB | ~10–20 KB |
+| List caching (identical rows → 1 bitmap) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Decorates a normal view (no `<Canvas>`) | ✅ | ✅ | ✅ | ❌ wrap in Canvas | ✅ | ✅ |
+| Android blur engine | portable C++ | RenderNode | SVG | Skia | `setShadowLayer` | RenderScript *(removed in API 31)* |
+| New Architecture | ✅ required | ✅ | ✅ | ✅ | interop | legacy |
+
+[shadow-2]: https://www.npmjs.com/package/react-native-shadow-2
+[Skia]: https://shopify.github.io/react-native-skia/
+[fast-shadow]: https://www.npmjs.com/package/react-native-fast-shadow
+[drop-shadow]: https://www.npmjs.com/package/react-native-drop-shadow
+
+**When this package is the right call**
+
+- A designer hands you `box-shadow: …` and it has to match the mock on both platforms.
+- Long lists / grids of identically-shadowed cards (the cache pays for itself once).
+- You don't want to ship Skia (multi-MB) just for shadows.
+
+**When to use something else**
+
+- **Core `boxShadow`** if "roughly right on each platform" is good enough — it's
+  free, built in, and takes the same CSS string. This package exists for when
+  *"roughly"* isn't acceptable and for the list-caching.
+- **Skia** if you're already using it, or need shadows on arbitrary drawn/Canvas
+  content.
+- **shadow-2** if you're still on the old architecture (this package is New-Arch only).
+
+A fuller breakdown is in [docs/COMPARISON.md](docs/COMPARISON.md).
+
 ## Limitations
 
 - **Shape shadows only.** The shadow follows the `borderRadius` you give it, not
