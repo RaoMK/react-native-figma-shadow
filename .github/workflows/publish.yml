@@ -1,0 +1,52 @@
+name: Publish to npm
+
+on:
+  # Manual: Actions tab -> "Publish to npm" -> Run workflow
+  workflow_dispatch:
+    inputs:
+      dist-tag:
+        description: npm dist-tag to publish under
+        required: true
+        default: alpha
+  # Automatic: publishing a GitHub Release publishes whatever version is in package.json
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # for npm provenance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      # prepublishOnly (typecheck + jest) and prepare (bob build) also run during
+      # `npm publish`; these are here so a failure is obvious in its own step.
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run cpp-test
+
+      - name: Resolve dist-tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.dist-tag }}" ]; then
+            echo "value=${{ github.event.inputs.dist-tag }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            echo "value=alpha" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        run: npm publish --provenance --access public --tag "${{ steps.tag.outputs.value }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
