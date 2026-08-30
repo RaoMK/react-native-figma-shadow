@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.authors      = package["author"]
 
   s.platforms    = { :ios => "13.4" }
-  s.source       = { :git => "https://github.com/mowgli/react-native-figma-shadow.git", :tag => "#{s.version}" }
+  s.source       = { :git => "https://github.com/RaoMK/react-native-figma-shadow.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,cpp}", "cpp/figmashadow/**/*.{h,cpp}"
   s.private_header_files = "cpp/figmashadow/**/*.h"

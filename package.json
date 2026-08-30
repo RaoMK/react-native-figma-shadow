@@ -46,14 +46,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mowgli/react-native-figma-shadow.git"
+    "url": "git+https://github.com/RaoMK/react-native-figma-shadow.git"
   },
-  "author": "mowglijuddi@gmail.com",
+  "author": "RaoMK <mowglijuddi@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mowgli/react-native-figma-shadow/issues"
+    "url": "https://github.com/RaoMK/react-native-figma-shadow/issues"
   },
-  "homepage": "https://github.com/mowgli/react-native-figma-shadow#readme",
+  "homepage": "https://github.com/RaoMK/react-native-figma-shadow#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public",
