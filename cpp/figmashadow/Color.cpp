@@ -4,7 +4,9 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 namespace figmashadow {

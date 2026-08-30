@@ -173,12 +173,18 @@ static void testRasterizer() {
   CHECK(topBand > 0.15f);
   CHECK(centre < 0.05f);
 
-  // Multiple shadows compose and stay within [0,1].
+  // Multiple shadows compose; every pixel stays a valid premultiplied colour
+  // (each of R, G, B <= A).
   Bitmap m = render(100, 100, 8, 8, 8, 8,
                     "0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.25)",
                     40, 40, 40, 40, 1.0f);
   CHECK(!m.empty());
-  for (size_t i = 3; i < m.pixels.size(); i += 4) CHECK(m.pixels[i] <= 255);
+  bool premultValid = true;
+  for (size_t i = 0; i + 3 < m.pixels.size(); i += 4) {
+    uint8_t a = m.pixels[i + 3];
+    if (m.pixels[i] > a || m.pixels[i + 1] > a || m.pixels[i + 2] > a) premultValid = false;
+  }
+  CHECK(premultValid);
 
   // Cache returns an identical buffer.
   Bitmap m2 = render(100, 100, 8, 8, 8, 8,

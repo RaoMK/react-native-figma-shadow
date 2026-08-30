@@ -1,9 +1,11 @@
 #include "FigmaShadow.h"
 
+#include <cmath>
 #include <cstdint>
 #include <list>
 #include <mutex>
 #include <sstream>
+#include <string>
 #include <unordered_map>
 
 #include "Parser.h"
