@@ -1,6 +1,6 @@
 {
   "name": "react-native-figma-shadow",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "Paste a CSS box-shadow from Figma and get a pixel-identical shadow on iOS and Android. New Architecture, zero peer dependencies.",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
@@ -29,6 +29,7 @@
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "clean": "del-cli lib",
     "prepare": "bob build",
+    "prepublishOnly": "npm run typecheck && npm test",
     "cpp-test": "c++ -std=c++17 -O2 -Wall -Wextra -Icpp/figmashadow cpp/test/test_main.cpp cpp/figmashadow/*.cpp -o /tmp/fstest && /tmp/fstest"
   },
   "keywords": [
@@ -54,7 +55,9 @@
   },
   "homepage": "https://github.com/mowgli/react-native-figma-shadow#readme",
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public",
+    "tag": "alpha"
   },
   "devDependencies": {
     "@react-native/babel-preset": "0.76.0",
