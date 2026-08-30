@@ -47,6 +47,12 @@ jobs:
           fi
 
       - name: Publish
-        run: npm publish --provenance --access public --tag "${{ steps.tag.outputs.value }}"
+        run: |
+          # npm provenance needs a public repo + id-token: write
+          PROV=""
+          if [ "${{ github.event.repository.private }}" = "false" ]; then
+            PROV="--provenance"
+          fi
+          npm publish $PROV --access public --tag "${{ steps.tag.outputs.value }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
