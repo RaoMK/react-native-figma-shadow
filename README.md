@@ -52,12 +52,26 @@ so the number you paste is the number you get.
 
 ```sh
 npm install react-native-figma-shadow
+# or: yarn add react-native-figma-shadow   (Yarn 1 or Yarn 3+/Berry)
 cd ios && pod install
 ```
 
 The C++ core is compiled into your app automatically by the New Architecture
 build (CocoaPods on iOS, CMake/`externalNativeBuild` on Android). There is no
-extra setup step.
+extra setup step, no postinstall script, and no peer dependency beyond
+`react` / `react-native` themselves.
+
+### Yarn 3+ (Berry)
+
+The package ships a modern `exports` map and installs cleanly under Yarn Berry.
+As with every React Native native module, use the **`node-modules` linker** —
+Metro, CocoaPods, and Gradle autolinking all expect a real `node_modules` tree,
+so Yarn PnP is not supported by the RN toolchain:
+
+```yaml
+# .yarnrc.yml
+nodeLinker: node-modules
+```
 
 ## API
 
