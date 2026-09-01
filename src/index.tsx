@@ -37,9 +37,6 @@ export interface ShadowProps extends Omit<ViewProps, 'style'> {
    */
   backgroundColor?: string;
 
-  /** Opt into the slower, exact rounded-corner convolution. */
-  highQuality?: boolean;
-
   /** Applied to the outer layout box. */
   style?: StyleProp<ViewStyle>;
 
@@ -67,7 +64,6 @@ export function Shadow(props: ShadowProps) {
   const {
     shadow = '',
     backgroundColor,
-    highQuality = false,
     style,
     children,
     // Pulled out so they are not spread onto the native view (which only takes
@@ -102,7 +98,6 @@ export function Shadow(props: ShadowProps) {
         {...rest}
         shadow={shadow}
         fillColor={backgroundColor}
-        highQuality={highQuality}
         borderTopLeftRadius={radii.tl}
         borderTopRightRadius={radii.tr}
         borderBottomRightRadius={radii.br}

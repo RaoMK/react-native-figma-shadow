@@ -20,7 +20,7 @@ Bitmap render(float contentWidth, float contentHeight,
               float radiusBottomRight, float radiusBottomLeft,
               const std::string& boxShadow, const std::string& fillColor,
               float bleedLeft, float bleedTop, float bleedRight, float bleedBottom,
-              float scale, bool highQuality = false);
+              float scale);
 
 // Drops every memoized bitmap. Call on a memory warning.
 void clearCache();

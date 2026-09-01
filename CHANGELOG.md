@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.9
+
+- **Validated the rasterizer against a true Gaussian.** The fast SDF/error-
+  function path is within ~5-8% of an ideal CSS `box-shadow` at the peak and
+  near-exact in the body; a `testAccuracyVsGaussian` case guards it. RN's own
+  Android `boxShadow` is the one that over-spreads.
+- **Removed the `highQuality` prop.** Its quadrature path was ~20x slower and
+  produced an identical result.
+- Per-corner radii now apply to the `backgroundColor` fill too (previously only
+  the top-left radius).
+
 ## 0.1.0-alpha.8
 
 - Reserve 4 sigma of bleed instead of 3, so large / offset / spread shadows fade

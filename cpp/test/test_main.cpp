@@ -4,11 +4,13 @@
 //
 // Exits non-zero on failure. Also writes a few PPMs to /tmp for eyeballing.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "Color.h"
 #include "FigmaShadow.h"
@@ -209,6 +211,123 @@ static void testRasterizer() {
   std::printf("  wrote /tmp/fs_drop.ppm /tmp/fs_offset.ppm /tmp/fs_inset.ppm\n");
 }
 
+// --- ground-truth CSS box-shadow: supersampled rounded-rect mask convolved with
+//     a true separable Gaussian (sigma = blur / 2) ---
+
+static float sdRoundRect(float x, float y, float hx, float hy, float r) {
+  r = std::min(r, std::min(std::max(hx, 0.0f), std::max(hy, 0.0f)));
+  float qx = std::fabs(x) - (hx - r);
+  float qy = std::fabs(y) - (hy - r);
+  float ax = std::max(qx, 0.0f), ay = std::max(qy, 0.0f);
+  return std::sqrt(ax * ax + ay * ay) + std::min(std::max(qx, qy), 0.0f) - r;
+}
+
+static std::vector<float> gaussianBlurredRoundRect(int W, int H, float cx, float cy,
+                                                   float hx, float hy, float r,
+                                                   float sigma) {
+  const int SS = 3;
+  const int hw = W * SS, hh = H * SS;
+  std::vector<float> m(static_cast<size_t>(hw) * hh);
+  for (int y = 0; y < hh; ++y)
+    for (int x = 0; x < hw; ++x)
+      m[static_cast<size_t>(y) * hw + x] =
+          sdRoundRect((x + 0.5f) / SS - cx, (y + 0.5f) / SS - cy, hx, hy, r) < 0.0f ? 1.0f
+                                                                                   : 0.0f;
+  const float s = sigma * SS;
+  const int kr = static_cast<int>(std::ceil(4.0f * s));
+  std::vector<float> k(2 * kr + 1);
+  float ksum = 0.0f;
+  for (int i = -kr; i <= kr; ++i) {
+    k[i + kr] = std::exp(-(i * i) / (2.0f * s * s));
+    ksum += k[i + kr];
+  }
+  for (float& v : k) v /= ksum;
+  std::vector<float> t(static_cast<size_t>(hw) * hh), o(static_cast<size_t>(hw) * hh);
+  for (int y = 0; y < hh; ++y)
+    for (int x = 0; x < hw; ++x) {
+      float a = 0.0f;
+      for (int i = -kr; i <= kr; ++i)
+        a += m[static_cast<size_t>(y) * hw + std::min(std::max(x + i, 0), hw - 1)] * k[i + kr];
+      t[static_cast<size_t>(y) * hw + x] = a;
+    }
+  for (int y = 0; y < hh; ++y)
+    for (int x = 0; x < hw; ++x) {
+      float a = 0.0f;
+      for (int i = -kr; i <= kr; ++i)
+        a += t[static_cast<size_t>(std::min(std::max(y + i, 0), hh - 1)) * hw + x] * k[i + kr];
+      o[static_cast<size_t>(y) * hw + x] = a;
+    }
+  std::vector<float> out(static_cast<size_t>(W) * H, 0.0f);
+  for (int y = 0; y < H; ++y)
+    for (int x = 0; x < W; ++x) {
+      float a = 0.0f;
+      for (int sy = 0; sy < SS; ++sy)
+        for (int sx = 0; sx < SS; ++sx)
+          a += o[static_cast<size_t>(y * SS + sy) * hw + (x * SS + sx)];
+      out[static_cast<size_t>(y) * W + x] = a / (SS * SS);
+    }
+  return out;
+}
+
+static void testAccuracyVsGaussian() {
+  std::printf("accuracy vs true Gaussian\n");
+  clearCache();
+
+  const float W = 132, H = 84, radius = 16, factor = 2.0f;  // BLUR_EXTENT_FACTOR
+
+  struct Case {
+    const char* name;
+    const char* shadow;
+  };
+  const Case cases[] = {
+      {"soft drop", "0 0 20px 0 rgba(0,0,0,0.5)"},
+      {"figma card", "0 4px 20px 0 rgba(0,0,0,0.15)"},
+      {"offset", "8px 10px 16px 0 rgba(0,0,0,0.6)"},
+      {"large", "0 8px 24px 0 rgba(0,0,0,0.2)"},
+  };
+
+  for (const auto& c : cases) {
+    const auto layers = parseBoxShadow(c.shadow);
+    const auto& L = layers[0];
+    const float sigma = L.blur * 0.5f;
+    const float ext = L.blur * factor + std::max(0.0f, L.spread);
+    const float bl = std::ceil(ext + std::max(0.0f, -L.offsetX));
+    const float br = std::ceil(ext + std::max(0.0f, L.offsetX));
+    const float bt = std::ceil(ext + std::max(0.0f, -L.offsetY));
+    const float bb = std::ceil(ext + std::max(0.0f, L.offsetY));
+
+    Bitmap ours = render(W, H, radius, radius, radius, radius, c.shadow, "", bl, bt, br, bb, 1.0f);
+    const int OW = ours.width, OH = ours.height;
+
+    const float cx = bl + W * 0.5f + L.offsetX;
+    const float cy = bt + H * 0.5f + L.offsetY;
+    auto ref = gaussianBlurredRoundRect(OW, OH, cx, cy, W * 0.5f + L.spread,
+                                        H * 0.5f + L.spread, radius, sigma);
+
+    const float ecx = bl + W * 0.5f, ecy = bt + H * 0.5f;
+    double sumErr = 0.0, refPeak = 0.0, ourPeak = 0.0;
+    int n = 0;
+    for (int y = 0; y < OH; ++y)
+      for (int x = 0; x < OW; ++x) {
+        float knock =
+            sdRoundRect(x + 0.5f - ecx, y + 0.5f - ecy, W * 0.5f, H * 0.5f, radius) < -1.0f
+                ? 1.0f
+                : 0.0f;
+        float refA = ref[static_cast<size_t>(y) * OW + x] * L.color.a * (1.0f - knock);
+        float ourA = ours.pixels[(static_cast<size_t>(y) * OW + x) * 4 + 3] / 255.0f;
+        sumErr += std::fabs(refA - ourA);
+        refPeak = std::max(refPeak, static_cast<double>(refA));
+        ourPeak = std::max(ourPeak, static_cast<double>(ourA));
+        ++n;
+      }
+    double meanErr = sumErr / n;
+    double peakRatio = ourPeak / refPeak;
+    std::printf("  %-11s meanErr=%.4f  peak ours/ref=%.2f\n", c.name, meanErr, peakRatio);
+    CHECK(meanErr < 0.015);
+    CHECK(peakRatio > 0.80 && peakRatio < 1.20);
+  }
+}
+
 static void testDeterminism() {
   std::printf("determinism\n");
   clearCache();
@@ -224,6 +343,7 @@ int main() {
   testColor();
   testParser();
   testRasterizer();
+  testAccuracyVsGaussian();
   testDeterminism();
   if (g_failures == 0) {
     std::printf("\nOK — all checks passed\n");

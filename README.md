@@ -84,7 +84,6 @@ nodeLinker: node-modules
 | `borderRadius`                                                                   | `number`  | Uniform corner radius of the shadow shape. Match your child. |
 | `borderTopLeftRadius` / `borderTopRightRadius` / `borderBottomRightRadius` / `borderBottomLeftRadius` | `number` | Per-corner override.                                         |
 | `backgroundColor`                                                                | `string`  | Fill painted inside the content box, **below** an inset shadow and below children (use this instead of a background on the child for CSS-correct inset shadows). |
-| `highQuality`                                                                    | `boolean` | Opt into the slower exact rounded-corner quadrature. Default `false`. |
 | `style`                                                                          | `ViewStyle` | Applied to the outer layout box.                            |
 
 ```tsx
@@ -182,8 +181,6 @@ A fuller breakdown is in [docs/COMPARISON.md](docs/COMPARISON.md).
 - **New Architecture required** (RN 0.76+). No legacy-architecture fallback.
 - First render of a given shadow happens on a background thread and appears a
   frame or two later; after that it is cached.
-- The `backgroundColor` fill uses the top-left radius for all four corners when
-  per-corner radii differ (the shadow itself is always exact).
 
 ## License
 

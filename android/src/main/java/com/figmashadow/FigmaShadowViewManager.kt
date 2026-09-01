@@ -31,9 +31,6 @@ class FigmaShadowViewManager :
   @ReactProp(name = "fillColor")
   override fun setFillColor(view: FigmaShadowView, value: String?) = view.setFillColor(value)
 
-  @ReactProp(name = "highQuality")
-  override fun setHighQuality(view: FigmaShadowView, value: Boolean) = view.setHighQuality(value)
-
   @ReactProp(name = "pixelRatio")
   override fun setPixelRatio(view: FigmaShadowView, value: Float) {
     // Android derives density from resources; the JS-supplied value is unused.

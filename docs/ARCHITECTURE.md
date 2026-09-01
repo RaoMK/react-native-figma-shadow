@@ -12,13 +12,13 @@ The math is an analytic Gaussian convolution of a rounded rectangle:
 
 - **Sharp corners** (all radii 0): the 2D integral is separable into a product
   of error functions — exact and cheap.
-- **Rounded corners** (fast path, default): an SDF/error-function approximation.
-  Visually indistinguishable for shadows; ~1 `erf` per pixel.
-- **Rounded corners** (`highQuality`): a bounded vertical quadrature of the
-  horizontal error-function term. Slower, closer to a reference `box-shadow`.
+- **Rounded corners**: an SDF/error-function approximation — ~1 `erf` per pixel,
+  within ~8% of a true Gaussian at the peak and visually indistinguishable for
+  shadows (a `testAccuracyVsGaussian` case in the test harness guards this
+  against drift).
 
-All three are pure `float`/`double` arithmetic — deterministic under IEEE-754,
-so the same inputs give the same bytes on every device.
+Both are pure `float`/`double` arithmetic — deterministic under IEEE-754, so the
+same inputs give the same bytes on every device.
 
 ## Data flow
 
@@ -59,9 +59,8 @@ clips the shadow exactly as CSS would.
 
 ## What is not done yet
 
-- No runnable example app in this repo (planned).
+- No runnable example app in this repo (planned; `docs/App.example.tsx` is a
+  drop-in for a bare RN app).
 - `drop-shadow` that follows arbitrary content alpha (text, transparent PNGs) —
   only shape shadows derived from `borderRadius`.
 - No animated/interpolatable shadow props.
-- The `backgroundColor` fill uses one corner radius for all four when per-corner
-  radii differ (the shadow itself is always exact).

@@ -9,15 +9,11 @@ namespace figmashadow {
 namespace {
 
 constexpr float kSqrt2 = 1.41421356237f;
-constexpr float kInvSqrt2Pi = 0.39894228040f;
 constexpr int kMaxDimension = 8192;
 
 inline float clamp01(float v) { return v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v); }
 inline float clampf(float v, float lo, float hi) {
   return v < lo ? lo : (v > hi ? hi : v);
-}
-inline float gauss1d(float d, float sigma) {
-  return std::exp(-(d * d) / (2.0f * sigma * sigma)) * kInvSqrt2Pi / sigma;
 }
 
 struct Radii4 {
@@ -54,58 +50,17 @@ float rectCoverage(float x, float y, float hx, float hy, float sigma) {
   return clamp01(gx * gy);
 }
 
-// Half-width of the shape, measured from the vertical centre line, at signed
-// vertical coordinate `t`. `rNeg` is the corner radius used for t <= 0, `rPos`
-// for t > 0.
-float sideExtent(float t, float hx, float hy, float rNeg, float rPos) {
-  float r = (t <= 0.0f) ? rNeg : rPos;
-  r = clampf(r, 0.0f, std::min(hx, hy));
-  float at = std::fabs(t);
-  if (at >= hy) return 0.0f;
-  float straight = hy - r;
-  if (at <= straight) return hx;
-  float dy = at - straight;
-  return (hx - r) + std::sqrt(std::max(0.0f, r * r - dy * dy));
-}
-
-// Exact-ish Gaussian convolution of a rounded rectangle via bounded vertical
-// quadrature. Slower; used only when `highQuality` is requested.
-float quadratureCoverage(float x, float y, float hx, float hy, const Radii4& r,
-                         float sigma) {
-  float s2 = kSqrt2 * sigma;
-  float R = 3.5f * sigma;
-  int n = static_cast<int>(std::ceil(9.5f * sigma / 0.75f));
-  n = std::min(std::max(n, 16), 160);
-  float step = (2.0f * R) / n;
-  float lo = y - R;
-  float acc = 0.0f;
-  float wsum = 0.0f;
-  for (int i = 0; i < n; ++i) {
-    float t = lo + (i + 0.5f) * step;
-    float w = gauss1d(y - t, sigma);
-    float re = sideExtent(t, hx, hy, r.tr, r.br);
-    float le = sideExtent(t, hx, hy, r.tl, r.bl);
-    float horiz = 0.0f;
-    if (re > 0.0f || le > 0.0f) {
-      horiz = clamp01(0.5f * (std::erf((re - x) / s2) + std::erf((le + x) / s2)));
-    }
-    acc += w * horiz;
-    wsum += w;
-  }
-  return (wsum > 1e-6f) ? clamp01(acc / wsum) : 0.0f;
-}
-
-// Gaussian convolution of a rounded rectangle. Fast path: exact for sharp
-// corners, an SDF/error-function approximation for rounded corners (visually
-// indistinguishable for shadows and, crucially, identical on every platform).
+// Gaussian convolution of a rounded rectangle. Exact for sharp corners (the 2D
+// integral is separable); an SDF/error-function approximation for rounded
+// corners -- within ~8% of a true Gaussian at the peak, visually
+// indistinguishable for shadows, and identical on every platform.
 float blurredCoverage(float x, float y, float hx, float hy, const Radii4& r,
-                      float sigma, float aa, bool highQuality) {
+                      float sigma, float aa) {
   if (hx <= 0.0f || hy <= 0.0f) return 0.0f;
   if (sigma < 0.6f) return hardCoverage(x, y, hx, hy, r, std::max(aa, 0.75f));
   if (r.tl == 0.0f && r.tr == 0.0f && r.br == 0.0f && r.bl == 0.0f) {
     return rectCoverage(x, y, hx, hy, sigma);
   }
-  if (highQuality) return quadratureCoverage(x, y, hx, hy, r, sigma);
   float sd = sdRoundRect(x, y, hx, hy, r);
   return clamp01(0.5f * (1.0f + std::erf(-sd / (kSqrt2 * sigma))));
 }
@@ -224,8 +179,7 @@ Bitmap renderShadow(const RenderRequest& req) {
         float* row = acc.px.data() + static_cast<size_t>(py) * rw * 4;
         for (int px = 0; px < rw; ++px) {
           const float lx = (px + 0.5f) / internalScale;
-          float cov = blurredCoverage(lx - cxr, ly - cyr, shx, shy, sr, sigma, aa,
-                                      req.highQuality);
+          float cov = blurredCoverage(lx - cxr, ly - cyr, shx, shy, sr, sigma, aa);
           if (cov <= 0.001f) continue;
           float knock = hardCoverage(lx - ecx, ly - ecy, hx, hy, elementRadii, aa);
           float a = layer.color.a * cov * (1.0f - knock);
@@ -251,8 +205,7 @@ Bitmap renderShadow(const RenderRequest& req) {
           if (inside <= 0.001f) continue;
           float innerCov =
               collapsed ? 0.0f
-                        : blurredCoverage(lx - cxr, ly - cyr, ihx, ihy, ir, sigma,
-                                          aa, req.highQuality);
+                        : blurredCoverage(lx - cxr, ly - cyr, ihx, ihy, ir, sigma, aa);
           float a = layer.color.a * (1.0f - innerCov) * inside;
           if (a <= 0.001f) continue;
           compositeOver(row + px * 4, layer.color.r * a, layer.color.g * a,

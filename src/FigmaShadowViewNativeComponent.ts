@@ -22,9 +22,6 @@ export interface NativeProps extends ViewProps {
 
   /** `PixelRatio.get()` — passed so the raster matches the screen density. */
   pixelRatio?: WithDefault<Float, 1>;
-
-  /** Use the slower, exact rounded-corner quadrature. */
-  highQuality?: WithDefault<boolean, false>;
 }
 
 export default codegenNativeComponent<NativeProps>('FigmaShadowView');

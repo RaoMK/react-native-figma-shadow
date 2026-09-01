@@ -21,12 +21,12 @@ long quant(float v) { return std::lround(v * 8.0f); }
 
 std::string makeKey(float cw, float ch, float rtl, float rtr, float rbr, float rbl,
                     const std::string& boxShadow, const std::string& fillColor,
-                    float bl, float bt, float br, float bb, float scale, bool hq) {
+                    float bl, float bt, float br, float bb, float scale) {
   std::ostringstream os;
   os << quant(cw) << '|' << quant(ch) << '|' << quant(rtl) << '|' << quant(rtr)
      << '|' << quant(rbr) << '|' << quant(rbl) << '|' << quant(bl) << '|'
      << quant(bt) << '|' << quant(br) << '|' << quant(bb) << '|' << quant(scale)
-     << '|' << (hq ? '1' : '0') << '|' << fillColor << '|' << boxShadow;
+     << '|' << fillColor << '|' << boxShadow;
   return os.str();
 }
 
@@ -85,11 +85,11 @@ Bitmap render(float contentWidth, float contentHeight, float radiusTopLeft,
               float radiusTopRight, float radiusBottomRight, float radiusBottomLeft,
               const std::string& boxShadow, const std::string& fillColor,
               float bleedLeft, float bleedTop, float bleedRight, float bleedBottom,
-              float scale, bool highQuality) {
+              float scale) {
   const std::string key =
       makeKey(contentWidth, contentHeight, radiusTopLeft, radiusTopRight,
               radiusBottomRight, radiusBottomLeft, boxShadow, fillColor, bleedLeft,
-              bleedTop, bleedRight, bleedBottom, scale, highQuality);
+              bleedTop, bleedRight, bleedBottom, scale);
 
   Bitmap cached;
   if (cache().get(key, cached)) return cached;
@@ -100,7 +100,6 @@ Bitmap render(float contentWidth, float contentHeight, float radiusTopLeft,
   req.radii = {radiusTopLeft, radiusTopRight, radiusBottomRight, radiusBottomLeft};
   req.bleed = {bleedLeft, bleedTop, bleedRight, bleedBottom};
   req.scale = scale;
-  req.highQuality = highQuality;
   req.hasFill = !fillColor.empty() && parseColor(fillColor, req.fill);
   req.layers = parseBoxShadow(boxShadow);
 

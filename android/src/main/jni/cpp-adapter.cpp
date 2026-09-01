@@ -35,15 +35,14 @@ Java_com_figmashadow_FigmaShadowView_nativeRenderShadow(
     JNIEnv *env, jclass /*clazz*/, jfloat contentWidth, jfloat contentHeight,
     jfloat radiusTopLeft, jfloat radiusTopRight, jfloat radiusBottomRight,
     jfloat radiusBottomLeft, jstring boxShadow, jstring fillColor, jfloat bleedLeft,
-    jfloat bleedTop, jfloat bleedRight, jfloat bleedBottom, jfloat scale,
-    jboolean highQuality) {
+    jfloat bleedTop, jfloat bleedRight, jfloat bleedBottom, jfloat scale) {
   const std::string shadow = jstringToStd(env, boxShadow);
   const std::string fill = jstringToStd(env, fillColor);
 
   figmashadow::Bitmap bmp = figmashadow::render(
       contentWidth, contentHeight, radiusTopLeft, radiusTopRight,
       radiusBottomRight, radiusBottomLeft, shadow, fill, bleedLeft, bleedTop,
-      bleedRight, bleedBottom, scale, highQuality == JNI_TRUE);
+      bleedRight, bleedBottom, scale);
 
   if (bmp.empty()) return nullptr;
 

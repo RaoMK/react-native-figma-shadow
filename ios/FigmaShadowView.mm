@@ -27,7 +27,6 @@ using namespace facebook::react;
   float _bleedRight;
   float _bleedBottom;
   float _pixelRatio;
-  bool _highQuality;
   uint64_t _renderGeneration;
 }
 
@@ -71,7 +70,6 @@ using namespace facebook::react;
   _bleedTop = newProps.bleedTop;
   _bleedRight = newProps.bleedRight;
   _bleedBottom = newProps.bleedBottom;
-  _highQuality = newProps.highQuality;
   if (newProps.pixelRatio > 0) {
     _pixelRatio = newProps.pixelRatio;
   }
@@ -128,13 +126,12 @@ using namespace facebook::react;
   const float radiusTL = _radiusTL, radiusTR = _radiusTR, radiusBR = _radiusBR, radiusBL = _radiusBL;
   const float bleedLeft = _bleedLeft, bleedTop = _bleedTop, bleedRight = _bleedRight, bleedBottom = _bleedBottom;
   const float pixelRatio = _pixelRatio;
-  const bool highQuality = _highQuality;
 
   __weak FigmaShadowView *weakSelf = self;
   dispatch_async([FigmaShadowView renderQueue], ^{
     figmashadow::Bitmap bmp = figmashadow::render(
         contentW, contentH, radiusTL, radiusTR, radiusBR, radiusBL, shadow, fillColor,
-        bleedLeft, bleedTop, bleedRight, bleedBottom, pixelRatio, highQuality);
+        bleedLeft, bleedTop, bleedRight, bleedBottom, pixelRatio);
 
     CGImageRef image = bmp.empty() ? nullptr : [FigmaShadowView makeImageFromBitmap:bmp];
 

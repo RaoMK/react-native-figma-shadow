@@ -31,7 +31,6 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
   private var bleedTop = 0f
   private var bleedRight = 0f
   private var bleedBottom = 0f
-  private var highQuality = false
 
   private var shadowBitmap: Bitmap? = null
   private var dirty = true
@@ -59,10 +58,6 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
   fun setFillColor(value: String?) {
     val next = value ?: ""
     if (next != fillSpec) { fillSpec = next; invalidateShadow() }
-  }
-
-  fun setHighQuality(value: Boolean) {
-    if (value != highQuality) { highQuality = value; invalidateShadow() }
   }
 
   fun setRadiusTopLeft(v: Float) { if (v != radiusTopLeft) { radiusTopLeft = v; invalidateShadow() } }
@@ -105,11 +100,10 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
     val bt = bleedTop
     val br = bleedRight
     val bb = bleedBottom
-    val hq = highQuality
 
     executor.execute {
       val bitmap = nativeRenderShadow(
-        contentW, contentH, rtl, rtr, rbr, rbl, spec, fill, bl, bt, br, bb, density, hq,
+        contentW, contentH, rtl, rtr, rbr, rbl, spec, fill, bl, bt, br, bb, density,
       )
       mainHandler.post {
         renderInFlight = -1
@@ -157,7 +151,6 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
       bleedRight: Float,
       bleedBottom: Float,
       scale: Float,
-      highQuality: Boolean,
     ): Bitmap?
 
     @JvmStatic
