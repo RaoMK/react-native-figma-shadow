@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-alpha.7
+
+- **iOS: fix `Unimplemented component: <FigmaShadowView>`** (the real cause this
+  time). React Native's generated `RCTThirdPartyFabricComponentsProvider`
+  forward-declares `FigmaShadowViewCls()` with **C linkage**; our `.mm` defined
+  it as a plain C++ function, so the symbol the provider looked up never
+  resolved and the component fell back to "Unimplemented". The definition is now
+  `extern "C"`, the `.mm` imports `RCTFabricComponentsPlugins.h`, and
+  `codegenConfig` gains the `ios.components` / `type: "all"` entries that a
+  `create-react-native-library` Fabric view ships with.
+- Android: `FigmaShadowViewPackage` reports an empty module-info map (view
+  managers register through `createViewManagers`, not `ReactModuleInfo`).
+- podspec: use `min_ios_version_supported` instead of a hard-coded floor.
+
 ## 0.1.0-alpha.6
 
 - **Fix inset shadows on Android** (and simplify both platforms). The optional

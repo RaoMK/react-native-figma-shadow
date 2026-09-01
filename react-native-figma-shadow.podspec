@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license      = package["license"]
   s.authors      = package["author"]
 
-  s.platforms    = { :ios => "13.4" }
+  s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/RaoMK/react-native-figma-shadow.git", :tag => "#{s.version}" }
 
   # Only .cpp goes through source_files. Our headers (Color.h, Types.h, ...) share

@@ -1,9 +1,10 @@
 #import "FigmaShadowView.h"
 
 #import <react/renderer/components/RNFigmaShadowSpec/ComponentDescriptors.h>
-#import <react/renderer/components/RNFigmaShadowSpec/EventEmitters.h>
 #import <react/renderer/components/RNFigmaShadowSpec/Props.h>
 #import <react/renderer/components/RNFigmaShadowSpec/RCTComponentViewHelpers.h>
+
+#import "RCTFabricComponentsPlugins.h"
 
 #import "figmashadow/FigmaShadow.h"
 
@@ -175,7 +176,13 @@ using namespace facebook::react;
 
 @end
 
-Class<RCTComponentViewProtocol> FigmaShadowViewCls(void)
+// The generated RCTThirdPartyFabricComponentsProvider forward-declares this with
+// C linkage; define it the same way so the symbol it looks up actually resolves
+// (otherwise the component shows up as "Unimplemented" at runtime).
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+extern "C" Class<RCTComponentViewProtocol> FigmaShadowViewCls(void)
 {
   return FigmaShadowView.class;
 }
+#pragma clang diagnostic pop
