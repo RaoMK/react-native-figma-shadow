@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0-alpha.5
+
+- **iOS: fix `Unimplemented component: <FigmaShadowView>`** at runtime. The
+  library shipped a `react-native.config.js` that declared `dependency.platforms`
+  explicitly; the empty `ios: {}` entry stopped autolinking from registering the
+  Fabric component. Removed the file entirely — `codegenConfig` in `package.json`
+  plus standard autolinking discovers the component on both platforms.
+
+  After upgrading, do a clean iOS reinstall:
+  `rm -rf ios/Pods ios/Podfile.lock ios/build ~/Library/Developer/Xcode/DerivedData/* && (cd ios && pod install)`
+
 ## 0.1.0-alpha.4
 
 - **Android: fix `Cannot get property 'kotlinVersion' on extra properties
