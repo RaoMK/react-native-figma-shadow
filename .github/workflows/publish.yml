@@ -3,11 +3,6 @@ name: Publish to npm
 on:
   # Actions tab -> "Publish to npm" -> Run workflow
   workflow_dispatch:
-    inputs:
-      dist-tag:
-        description: npm dist-tag to publish under (alpha, beta, latest, ...)
-        required: true
-        default: alpha
 
 jobs:
   publish:
@@ -34,44 +29,37 @@ jobs:
 
       - name: Read version
         id: v
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          case "$VERSION" in
-            *-*) echo "prerelease=true"  >> "$GITHUB_OUTPUT" ;;
-            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
-          esac
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Publish to npm
+        # No --tag: every release goes to `latest`, so `npm install
+        # react-native-figma-shadow` always gets the newest build.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PROV=""
           if [ "${{ github.event.repository.private }}" = "false" ]; then
             PROV="--provenance"
           fi
-          npm publish $PROV --access public --tag "${{ github.event.inputs.dist-tag }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          npm publish $PROV --access public
+          npm dist-tag ls react-native-figma-shadow
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.v.outputs.version }}
-          PRERELEASE: ${{ steps.v.outputs.prerelease }}
         run: |
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists; skipping."
             exit 0
           fi
-          # Pull this version's section out of CHANGELOG.md, if present.
           awk -v v="## ${VERSION}" '
             $0 == v {grab=1; next}
             /^## / && grab {exit}
             grab {print}
           ' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
-          if [ "$PRERELEASE" = "true" ]; then
-            gh release create "$TAG" --title "$TAG" --notes-file notes.md --target "$GITHUB_SHA" --prerelease --latest=false
-          else
-            gh release create "$TAG" --title "$TAG" --notes-file notes.md --target "$GITHUB_SHA"
-          fi
+          PRE=""
+          case "$VERSION" in *-*) PRE="--prerelease --latest=false" ;; esac
+          gh release create "$TAG" --title "$TAG" --notes-file notes.md --target "$GITHUB_SHA" $PRE

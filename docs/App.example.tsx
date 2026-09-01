@@ -1,7 +1,7 @@
 /**
  * Drop this in as your App.tsx to visually check react-native-figma-shadow.
  *
- *   npm install react-native-figma-shadow@alpha
+ *   npm install react-native-figma-shadow
  *   (iOS)  cd ios && pod install && cd ..
  *
  * Each row renders the SAME box-shadow string two ways:

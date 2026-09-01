@@ -1,9 +1,10 @@
 # react-native-figma-shadow
 
-> **Status: alpha (`0.1.0-alpha.x`).** The C++ core is tested and the package
-> builds, but the native iOS/Android layers have not yet been run through a full
-> app build. Install with `react-native-figma-shadow@alpha` and expect rough
-> edges. Feedback welcome.
+> **Status: alpha (`0.1.0-alpha.x`).** The shared C++ core is tested; the native
+> iOS/Android layers are still being shaken out on real devices. Every release is
+> published to the `latest` (and `alpha`) dist-tag, so `npm install
+> react-native-figma-shadow` gets the newest build. Expect rough edges — feedback
+> welcome.
 
 Paste a CSS `box-shadow` — the exact string Figma's **Copy as CSS** produces, or
 what you already use on the web — and get a **pixel-identical** shadow on iOS and

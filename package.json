@@ -68,8 +68,7 @@
   "homepage": "https://github.com/RaoMK/react-native-figma-shadow#readme",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
-    "access": "public",
-    "tag": "alpha"
+    "access": "public"
   },
   "devDependencies": {
     "@react-native/babel-preset": "0.76.0",
