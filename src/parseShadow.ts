@@ -19,8 +19,10 @@ export interface EdgeInsets {
   bottom: number;
 }
 
-// A Gaussian with sigma = blur / 2; 3 sigma (= 1.5 * blur) captures 99.7% of it.
-const BLUR_EXTENT_FACTOR = 1.5;
+// The shadow is a Gaussian with sigma = blur / 2. Reserve 4 sigma (= 2 * blur)
+// of bleed so it fades to nothing before the raster buffer edge; 3 sigma leaves
+// a ~0.4% tail that reads as a faint hard edge on a light background.
+const BLUR_EXTENT_FACTOR = 2.0;
 
 function splitTopLevel(input: string, delimiter: string): string[] {
   const out: string[] = [];

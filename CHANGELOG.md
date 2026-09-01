@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-alpha.8
+
+- Reserve 4 sigma of bleed instead of 3, so large / offset / spread shadows fade
+  completely instead of ending in a faint hard edge at the raster buffer bound.
+
 ## 0.1.0-alpha.7
 
 - **iOS: fix `Unimplemented component: <FigmaShadowView>`** (the real cause this

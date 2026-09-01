@@ -50,18 +50,18 @@ describe('computeBleed', () => {
     expect(computeBleed([])).toEqual({ left: 0, top: 0, right: 0, bottom: 0 });
   });
 
-  it('covers 3 sigma of blur plus spread', () => {
+  it('covers 4 sigma of blur plus spread', () => {
     const bleed = computeBleed(parseBoxShadow('0 0 20px 0 rgba(0,0,0,.5)'));
-    // 1.5 * 20 = 30
-    expect(bleed).toEqual({ left: 30, top: 30, right: 30, bottom: 30 });
+    // 2 * 20 = 40
+    expect(bleed).toEqual({ left: 40, top: 40, right: 40, bottom: 40 });
   });
 
   it('adds positive offset on the side it points to', () => {
     const bleed = computeBleed(parseBoxShadow('8px 10px 16px 0 rgba(0,0,0,.5)'));
-    expect(bleed.right).toBe(Math.ceil(1.5 * 16 + 8));
-    expect(bleed.bottom).toBe(Math.ceil(1.5 * 16 + 10));
-    expect(bleed.left).toBe(24);
-    expect(bleed.top).toBe(24);
+    expect(bleed.right).toBe(Math.ceil(2 * 16 + 8));
+    expect(bleed.bottom).toBe(Math.ceil(2 * 16 + 10));
+    expect(bleed.left).toBe(32);
+    expect(bleed.top).toBe(32);
   });
 
   it('ignores inset shadows', () => {
@@ -77,6 +77,6 @@ describe('computeBleed', () => {
     const bleed = computeBleed(
       parseBoxShadow('0 1px 2px rgba(0,0,0,.2), 0 8px 40px rgba(0,0,0,.2)')
     );
-    expect(bleed.bottom).toBe(Math.ceil(1.5 * 40 + 8));
+    expect(bleed.bottom).toBe(Math.ceil(2 * 40 + 8));
   });
 });

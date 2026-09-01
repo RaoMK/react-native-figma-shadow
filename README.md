@@ -120,7 +120,7 @@ parseBoxShadow('0 4px 20px rgba(0,0,0,.15)');
 // [{ offsetX: 0, offsetY: 4, blur: 20, spread: 0, inset: false }]
 
 computeBleed(parseBoxShadow('0 4px 20px rgba(0,0,0,.15)'));
-// { left: 30, top: 30, right: 30, bottom: 34 }
+// { left: 40, top: 40, right: 40, bottom: 44 }
 ```
 
 ## How it works
