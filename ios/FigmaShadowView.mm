@@ -5,8 +5,7 @@
 #import <react/renderer/components/RNFigmaShadowSpec/Props.h>
 #import <react/renderer/components/RNFigmaShadowSpec/RCTComponentViewHelpers.h>
 
-#import "Color.h"
-#import "FigmaShadow.h"
+#import "figmashadow/FigmaShadow.h"
 
 using namespace facebook::react;
 

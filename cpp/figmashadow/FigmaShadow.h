@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "Color.h"  // re-exported: figmashadow::parseColor
 #include "Types.h"
 
 namespace figmashadow {

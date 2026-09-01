@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.3
+
+- **iOS: fix build errors** `Redefinition of 'SharedColor'` and `No member named
+  'parseColor' in namespace 'figmashadow'`. Our C++ headers (`Color.h`, `Types.h`,
+  …) share basenames with React Native's and were being flattened onto the shared
+  header search path. They are now kept out of `source_files` (`.cpp` only) and
+  reached exclusively as `figmashadow/<name>.h`.
+
 ## 0.1.0-alpha.2
 
 - **Android: fix `FigmaShadowViewManager cannot be cast to IViewGroupManager`**
