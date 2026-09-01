@@ -39,8 +39,6 @@ jobs:
   # autolinking breakage that the unit tests can't.
   pack:
     runs-on: ubuntu-latest
-    outputs:
-      tarball: ${{ steps.pack.outputs.tarball }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,14 +46,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - id: pack
-        run: |
-          FILE=$(npm pack --silent)
-          echo "tarball=$FILE" >> "$GITHUB_OUTPUT"
+      - run: npm pack # runs `prepare` (bob build); tarball name is deterministic
       - uses: actions/upload-artifact@v4
         with:
           name: tarball
-          path: ${{ steps.pack.outputs.tarball }}
+          path: react-native-figma-shadow-*.tgz
+          if-no-files-found: error
 
   android-build:
     needs: pack
