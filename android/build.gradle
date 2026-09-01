@@ -1,17 +1,27 @@
 buildscript {
+  // Follow the host app's toolchain versions where it exposes them; fall back to
+  // versions new enough for React Native 0.76 - 0.87+.
+  ext.kotlinVersion = rootProject.ext.has("kotlinVersion")
+    ? rootProject.ext["kotlinVersion"]
+    : "2.0.21"
+
   repositories {
     google()
     mavenCentral()
   }
   dependencies {
+    // Gradle aligns buildscript classpath versions upward across the build, so
+    // these act as floors -- the host app's newer AGP/Kotlin win.
     classpath "com.android.tools.build:gradle:8.7.2"
-    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24"
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${ext.kotlinVersion}"
     classpath "com.facebook.react:react-native-gradle-plugin"
   }
 }
 
 def getExtOrDefault = { name, fallback ->
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : fallback
+  if (rootProject.ext.has(name)) return rootProject.ext.get(name)
+  def prop = project.properties["FigmaShadow_" + name]
+  return prop != null ? Integer.parseInt(prop.toString()) : fallback
 }
 
 def reactNativeArchitectures() {
@@ -26,11 +36,11 @@ apply plugin: "com.facebook.react"
 android {
   namespace "com.figmashadow"
 
-  compileSdkVersion getExtOrDefault("compileSdkVersion", 35)
+  compileSdkVersion getExtOrDefault("compileSdkVersion", 36)
 
   defaultConfig {
     minSdkVersion getExtOrDefault("minSdkVersion", 24)
-    targetSdkVersion getExtOrDefault("targetSdkVersion", 34)
+    targetSdkVersion getExtOrDefault("targetSdkVersion", 36)
 
     externalNativeBuild {
       cmake {
@@ -66,7 +76,6 @@ repositories {
 
 dependencies {
   implementation "com.facebook.react:react-android"
-  implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"
 }
 
 react {

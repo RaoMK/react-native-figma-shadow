@@ -1,16 +1,18 @@
 package com.figmashadow
 
 import com.facebook.react.module.annotations.ReactModule
-import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.uimanager.ViewGroupManager
 import com.facebook.react.uimanager.ViewManagerDelegate
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.viewmanagers.FigmaShadowViewManagerDelegate
 import com.facebook.react.viewmanagers.FigmaShadowViewManagerInterface
 
+// The component has children, so Fabric's mounting layer casts the manager to
+// IViewGroupManager -- it must extend ViewGroupManager, not SimpleViewManager.
 @ReactModule(name = FigmaShadowViewManager.NAME)
 class FigmaShadowViewManager :
-  SimpleViewManager<FigmaShadowView>(),
+  ViewGroupManager<FigmaShadowView>(),
   FigmaShadowViewManagerInterface<FigmaShadowView> {
 
   private val delegate: ViewManagerDelegate<FigmaShadowView> =

@@ -1,6 +1,6 @@
 {
   "name": "react-native-figma-shadow",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Paste a CSS box-shadow from Figma and get a pixel-identical shadow on iOS and Android. New Architecture, zero peer dependencies.",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -22,6 +22,7 @@
   "files": [
     "src",
     "lib",
+    "CHANGELOG.md",
     "android",
     "ios",
     "cpp",
