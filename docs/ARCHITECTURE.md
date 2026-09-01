@@ -59,8 +59,8 @@ clips the shadow exactly as CSS would.
 
 ## What is not done yet
 
-- No runnable example app in this repo (planned; `docs/App.example.tsx` is a
-  drop-in for a bare RN app).
+- The example is a screen (`example/App.tsx`), not a committed native project;
+  CI builds it against the packed tarball in a scaffolded app.
 - `drop-shadow` that follows arbitrary content alpha (text, transparent PNGs) —
   only shape shadows derived from `borderRadius`.
 - No animated/interpolatable shadow props.

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.0
+
+First non-prerelease. Consolidates `0.1.0-alpha.1` … `0.1.0-alpha.9`.
+
+- **`<Shadow>`** — wrap any view, pass a CSS `box-shadow` string, get a
+  pixel-identical shadow on iOS and Android. Multiple layers, `inset`, spread,
+  negative spread, per-corner radii, every CSS color format, optional
+  `backgroundColor` fill.
+- **Shared C++ core** — one analytic Gaussian rasterizer compiled into both
+  platforms; iOS and Android emit the same bytes. Validated within ~5–8% of a
+  true CSS `box-shadow` (guarded by `testAccuracyVsGaussian`). LRU-memoized so a
+  list of identical shadows costs one bitmap.
+- **Zero peer dependencies**, ~50–100 KB per architecture. New Architecture
+  (RN 0.76+) only.
+- Docs: README, `docs/RECIPES.md`, `docs/ARCHITECTURE.md`, `docs/COMPARISON.md`,
+  `docs/ROADMAP.md`, `example/App.tsx`.
+- CI: JS + C++ core tests on every push, plus a native smoke build (scaffold a
+  real RN app, install the packed tarball, compile iOS and Android).
+
+Known gaps and what's next: see [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ## 0.1.0-alpha.9
 
 - **Validated the rasterizer against a true Gaussian.** The fast SDF/error-
