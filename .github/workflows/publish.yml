@@ -1,23 +1,20 @@
 name: Publish to npm
 
 on:
-  # Manual: Actions tab -> "Publish to npm" -> Run workflow
+  # Actions tab -> "Publish to npm" -> Run workflow
   workflow_dispatch:
     inputs:
       dist-tag:
-        description: npm dist-tag to publish under
+        description: npm dist-tag to publish under (alpha, beta, latest, ...)
         required: true
         default: alpha
-  # Automatic: publishing a GitHub Release publishes whatever version is in package.json
-  release:
-    types: [published]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      id-token: write # for npm provenance
+      contents: write # create the GitHub Release / tag
+      id-token: write # npm provenance
     steps:
       - uses: actions/checkout@v4
 
@@ -35,24 +32,46 @@ jobs:
       - run: npm test
       - run: npm run cpp-test
 
-      - name: Resolve dist-tag
-        id: tag
+      - name: Read version
+        id: v
         run: |
-          if [ -n "${{ github.event.inputs.dist-tag }}" ]; then
-            echo "value=${{ github.event.inputs.dist-tag }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            echo "value=alpha" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=latest" >> "$GITHUB_OUTPUT"
-          fi
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          case "$VERSION" in
+            *-*) echo "prerelease=true"  >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
 
-      - name: Publish
+      - name: Publish to npm
         run: |
-          # npm provenance needs a public repo + id-token: write
           PROV=""
           if [ "${{ github.event.repository.private }}" = "false" ]; then
             PROV="--provenance"
           fi
-          npm publish $PROV --access public --tag "${{ steps.tag.outputs.value }}"
+          npm publish $PROV --access public --tag "${{ github.event.inputs.dist-tag }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+          PRERELEASE: ${{ steps.v.outputs.prerelease }}
+        run: |
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; skipping."
+            exit 0
+          fi
+          # Pull this version's section out of CHANGELOG.md, if present.
+          awk -v v="## ${VERSION}" '
+            $0 == v {grab=1; next}
+            /^## / && grab {exit}
+            grab {print}
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
+          if [ "$PRERELEASE" = "true" ]; then
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md --target "$GITHUB_SHA" --prerelease --latest=false
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md --target "$GITHUB_SHA"
+          fi
