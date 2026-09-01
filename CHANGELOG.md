@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-alpha.4
+
+- **Android: fix `Cannot get property 'kotlinVersion' on extra properties
+  extension`** at evaluation time. The library no longer declares its own
+  `buildscript` block — the Android Gradle, Kotlin and React Native Gradle
+  plugins are inherited from the host app's root classpath, which removes the
+  cross-version conflicts entirely.
+- Android: use `compileSdk` / `minSdk` / `targetSdk` (the non-deprecated form).
+
 ## 0.1.0-alpha.3
 
 - **iOS: fix build errors** `Redefinition of 'SharedColor'` and `No member named
