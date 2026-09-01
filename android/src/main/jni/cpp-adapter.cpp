@@ -4,8 +4,7 @@
 #include <cstring>
 #include <string>
 
-#include "Color.h"
-#include "FigmaShadow.h"
+#include "figmashadow/FigmaShadow.h"
 
 namespace {
 
@@ -35,14 +34,16 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_com_figmashadow_FigmaShadowView_nativeRenderShadow(
     JNIEnv *env, jclass /*clazz*/, jfloat contentWidth, jfloat contentHeight,
     jfloat radiusTopLeft, jfloat radiusTopRight, jfloat radiusBottomRight,
-    jfloat radiusBottomLeft, jstring boxShadow, jfloat bleedLeft, jfloat bleedTop,
-    jfloat bleedRight, jfloat bleedBottom, jfloat scale, jboolean highQuality) {
+    jfloat radiusBottomLeft, jstring boxShadow, jstring fillColor, jfloat bleedLeft,
+    jfloat bleedTop, jfloat bleedRight, jfloat bleedBottom, jfloat scale,
+    jboolean highQuality) {
   const std::string shadow = jstringToStd(env, boxShadow);
+  const std::string fill = jstringToStd(env, fillColor);
 
   figmashadow::Bitmap bmp = figmashadow::render(
       contentWidth, contentHeight, radiusTopLeft, radiusTopRight,
-      radiusBottomRight, radiusBottomLeft, shadow, bleedLeft, bleedTop, bleedRight,
-      bleedBottom, scale, highQuality == JNI_TRUE);
+      radiusBottomRight, radiusBottomLeft, shadow, fill, bleedLeft, bleedTop,
+      bleedRight, bleedBottom, scale, highQuality == JNI_TRUE);
 
   if (bmp.empty()) return nullptr;
 
@@ -53,22 +54,25 @@ Java_com_figmashadow_FigmaShadowView_nativeRenderShadow(
   if (AndroidBitmap_lockPixels(env, bitmap, &pixels) != ANDROID_BITMAP_RESULT_SUCCESS) {
     return nullptr;
   }
+
   // figmashadow::Bitmap is premultiplied RGBA8888; Android's ARGB_8888 is stored
-  // in the same byte order (R,G,B,A) and premultiplied by default.
-  std::memcpy(pixels, bmp.pixels.data(), bmp.pixels.size());
+  // in the same byte order (R,G,B,A) and premultiplied by default. Copy row by
+  // row in case the Android bitmap uses a padded stride.
+  AndroidBitmapInfo info;
+  if (AndroidBitmap_getInfo(env, bitmap, &info) == ANDROID_BITMAP_RESULT_SUCCESS &&
+      info.stride == static_cast<uint32_t>(bmp.width) * 4) {
+    std::memcpy(pixels, bmp.pixels.data(), bmp.pixels.size());
+  } else {
+    const size_t rowBytes = static_cast<size_t>(bmp.width) * 4;
+    auto *dst = static_cast<uint8_t *>(pixels);
+    for (int y = 0; y < bmp.height; ++y) {
+      std::memcpy(dst + static_cast<size_t>(y) * info.stride,
+                  bmp.pixels.data() + static_cast<size_t>(y) * rowBytes, rowBytes);
+    }
+  }
+
   AndroidBitmap_unlockPixels(env, bitmap);
-
   return bitmap;
-}
-
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_figmashadow_FigmaShadowView_nativeParseColor(JNIEnv *env, jclass /*clazz*/,
-                                                      jstring token, jfloatArray out) {
-  figmashadow::Color color;
-  if (!figmashadow::parseColor(jstringToStd(env, token), color)) return JNI_FALSE;
-  jfloat values[4] = {color.r, color.g, color.b, color.a};
-  env->SetFloatArrayRegion(out, 0, 4, values);
-  return JNI_TRUE;
 }
 
 extern "C" JNIEXPORT void JNICALL

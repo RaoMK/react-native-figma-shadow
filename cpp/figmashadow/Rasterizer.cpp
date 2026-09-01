@@ -148,7 +148,9 @@ Bitmap renderShadow(const RenderRequest& req) {
 
   const float logicalW = req.bleed.left + req.contentWidth + req.bleed.right;
   const float logicalH = req.bleed.top + req.contentHeight + req.bleed.bottom;
-  if (logicalW <= 0.0f || logicalH <= 0.0f || req.layers.empty()) return result;
+  const bool nothingToDraw =
+      req.layers.empty() && !(req.hasFill && req.fill.a > 0.0f);
+  if (logicalW <= 0.0f || logicalH <= 0.0f || nothingToDraw) return result;
 
   const float scale = std::max(req.scale, 0.1f);
   int outW = std::min(kMaxDimension,
@@ -180,11 +182,33 @@ Bitmap renderShadow(const RenderRequest& req) {
   const Radii4 elementRadii{req.radii.topLeft, req.radii.topRight,
                             req.radii.bottomRight, req.radii.bottomLeft};
 
-  // Paint order: the first layer in the list ends up on top, so composite from
-  // the last layer to the first.
+  // Paint order (bottom to top): drop shadows, then the fill, then inset
+  // shadows. Within each shadow group the first layer in the list ends up on
+  // top, so iterate the list in reverse.
+  for (int pass = 0; pass < 3; ++pass) {
+    if (pass == 1) {
+      // --- fill pass ---
+      if (!req.hasFill || req.fill.a <= 0.0f) continue;
+      const Color& f = req.fill;
+      for (int py = 0; py < rh; ++py) {
+        const float ly = (py + 0.5f) / internalScale;
+        float* row = acc.px.data() + static_cast<size_t>(py) * rw * 4;
+        for (int px = 0; px < rw; ++px) {
+          const float lx = (px + 0.5f) / internalScale;
+          float cov = hardCoverage(lx - ecx, ly - ecy, hx, hy, elementRadii, aa);
+          float a = f.a * cov;
+          if (a <= 0.001f) continue;
+          compositeOver(row + px * 4, f.r * a, f.g * a, f.b * a, a);
+        }
+      }
+      continue;
+    }
+
+    const bool wantInset = (pass == 2);
+
   for (auto it = req.layers.rbegin(); it != req.layers.rend(); ++it) {
     const ShadowLayer& layer = *it;
-    if (layer.color.a <= 0.0f) continue;
+    if (layer.color.a <= 0.0f || layer.inset != wantInset) continue;
     const float sigma = layer.blur * 0.5f;
 
     if (!layer.inset) {
@@ -237,6 +261,7 @@ Bitmap renderShadow(const RenderRequest& req) {
       }
     }
   }
+  }  // pass loop
 
   // Resample (identity when rw==outW && rh==outH) and pack to premultiplied
   // RGBA8888.

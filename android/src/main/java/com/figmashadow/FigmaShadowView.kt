@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
@@ -13,9 +12,9 @@ import com.facebook.react.views.view.ReactViewGroup
 import java.util.concurrent.Executors
 
 /**
- * Container that paints a CSS-style shadow behind its children. All shadow
- * geometry is produced by the shared C++ core (see [nativeRenderShadow]); this
- * view only blits the resulting bitmap.
+ * Container that paints a CSS-style shadow behind its children. Every pixel
+ * (shadow layers plus the optional fill) is produced by the shared C++ core in
+ * [nativeRenderShadow]; this view only blits the resulting bitmap.
  */
 class FigmaShadowView(context: Context) : ReactViewGroup(context) {
 
@@ -23,7 +22,7 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
     context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT
 
   private var shadowSpec: String = ""
-  private var backgroundSpec: String? = null
+  private var fillSpec: String = ""
   private var radiusTopLeft = 0f
   private var radiusTopRight = 0f
   private var radiusBottomRight = 0f
@@ -40,76 +39,54 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
   private var renderInFlight = -1
 
   private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
-  private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-  private var hasFill = false
-  private val fillPath = Path()
-  private val fillRect = RectF()
-  private val fillRadii = FloatArray(8)
+  private val dstRect = RectF()
 
   init {
-    setWillNotDraw(false)
-    // The shadow is drawn outside the padded content box.
+    // The shadow paints outside the padded content box.
     clipChildren = false
+  }
+
+  private fun invalidateShadow() {
+    dirty = true
+    invalidate()
   }
 
   fun setShadowSpec(value: String?) {
     val next = value ?: ""
-    if (next != shadowSpec) {
-      shadowSpec = next
-      dirty = true
-      invalidate()
-    }
+    if (next != shadowSpec) { shadowSpec = next; invalidateShadow() }
   }
 
   fun setFillColor(value: String?) {
-    if (value != backgroundSpec) {
-      backgroundSpec = value
-      resolveFill()
-      invalidate()
-    }
+    val next = value ?: ""
+    if (next != fillSpec) { fillSpec = next; invalidateShadow() }
   }
 
   fun setHighQuality(value: Boolean) {
-    if (value != highQuality) {
-      highQuality = value
-      dirty = true
-      invalidate()
-    }
+    if (value != highQuality) { highQuality = value; invalidateShadow() }
   }
 
-  private inline fun updateRadius(current: Float, next: Float, apply: (Float) -> Unit) {
-    if (current != next) {
-      apply(next)
-      dirty = true
-      invalidate()
-    }
-  }
+  fun setRadiusTopLeft(v: Float) { if (v != radiusTopLeft) { radiusTopLeft = v; invalidateShadow() } }
+  fun setRadiusTopRight(v: Float) { if (v != radiusTopRight) { radiusTopRight = v; invalidateShadow() } }
+  fun setRadiusBottomRight(v: Float) { if (v != radiusBottomRight) { radiusBottomRight = v; invalidateShadow() } }
+  fun setRadiusBottomLeft(v: Float) { if (v != radiusBottomLeft) { radiusBottomLeft = v; invalidateShadow() } }
 
-  fun setRadiusTopLeft(v: Float) = updateRadius(radiusTopLeft, v) { radiusTopLeft = it }
-  fun setRadiusTopRight(v: Float) = updateRadius(radiusTopRight, v) { radiusTopRight = it }
-  fun setRadiusBottomRight(v: Float) = updateRadius(radiusBottomRight, v) { radiusBottomRight = it }
-  fun setRadiusBottomLeft(v: Float) = updateRadius(radiusBottomLeft, v) { radiusBottomLeft = it }
-
-  fun setBleedLeft(v: Float) = updateRadius(bleedLeft, v) { bleedLeft = it }
-  fun setBleedTop(v: Float) = updateRadius(bleedTop, v) { bleedTop = it }
-  fun setBleedRight(v: Float) = updateRadius(bleedRight, v) { bleedRight = it }
-  fun setBleedBottom(v: Float) = updateRadius(bleedBottom, v) { bleedBottom = it }
+  fun setBleedLeft(v: Float) { if (v != bleedLeft) { bleedLeft = v; invalidateShadow() } }
+  fun setBleedTop(v: Float) { if (v != bleedTop) { bleedTop = v; invalidateShadow() } }
+  fun setBleedRight(v: Float) { if (v != bleedRight) { bleedRight = v; invalidateShadow() } }
+  fun setBleedBottom(v: Float) { if (v != bleedBottom) { bleedBottom = v; invalidateShadow() } }
 
   override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
     super.onSizeChanged(w, h, oldw, oldh)
     dirty = true
   }
 
-  private fun contentWidthPx(): Float = width - (bleedLeft + bleedRight) * density
-  private fun contentHeightPx(): Float = height - (bleedTop + bleedBottom) * density
-
   /** Kicks off an off-thread raster; the current bitmap keeps showing until it lands. */
   private fun rebuildShadow() {
     dirty = false
 
-    val contentW = contentWidthPx() / density
-    val contentH = contentHeightPx() / density
-    if (contentW <= 0f || contentH <= 0f || shadowSpec.isEmpty()) {
+    val contentW = (width - (bleedLeft + bleedRight) * density) / density
+    val contentH = (height - (bleedTop + bleedBottom) * density) / density
+    if (contentW <= 0f || contentH <= 0f || (shadowSpec.isEmpty() && fillSpec.isEmpty())) {
       shadowBitmap = null
       return
     }
@@ -119,6 +96,7 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
     renderInFlight = generation
 
     val spec = shadowSpec
+    val fill = fillSpec
     val rtl = radiusTopLeft
     val rtr = radiusTopRight
     val rbr = radiusBottomRight
@@ -131,7 +109,7 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
 
     executor.execute {
       val bitmap = nativeRenderShadow(
-        contentW, contentH, rtl, rtr, rbr, rbl, spec, bl, bt, br, bb, density, hq,
+        contentW, contentH, rtl, rtr, rbr, rbl, spec, fill, bl, bt, br, bb, density, hq,
       )
       mainHandler.post {
         renderInFlight = -1
@@ -143,46 +121,12 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
     }
   }
 
-  private fun resolveFill() {
-    val spec = backgroundSpec
-    val rgba = FloatArray(4)
-    hasFill = spec != null && nativeParseColor(spec, rgba) && rgba[3] > 0f
-    if (hasFill) {
-      fillPaint.setARGB(
-        (rgba[3] * 255).toInt(),
-        (rgba[0] * 255).toInt(),
-        (rgba[1] * 255).toInt(),
-        (rgba[2] * 255).toInt(),
-      )
-    }
-  }
-
-  private fun updateFillPath() {
-    val left = bleedLeft * density
-    val top = bleedTop * density
-    fillRect.set(left, top, left + contentWidthPx(), top + contentHeightPx())
-    val tl = radiusTopLeft * density
-    val tr = radiusTopRight * density
-    val br = radiusBottomRight * density
-    val bl = radiusBottomLeft * density
-    fillRadii[0] = tl; fillRadii[1] = tl
-    fillRadii[2] = tr; fillRadii[3] = tr
-    fillRadii[4] = br; fillRadii[5] = br
-    fillRadii[6] = bl; fillRadii[7] = bl
-    fillPath.reset()
-    fillPath.addRoundRect(fillRect, fillRadii, Path.Direction.CW)
-  }
-
   override fun dispatchDraw(canvas: Canvas) {
     if (dirty) rebuildShadow()
 
-    if (hasFill) {
-      updateFillPath()
-      canvas.drawPath(fillPath, fillPaint)
-    }
-
     shadowBitmap?.let { bmp ->
-      canvas.drawBitmap(bmp, null, RectF(0f, 0f, width.toFloat(), height.toFloat()), bitmapPaint)
+      dstRect.set(0f, 0f, width.toFloat(), height.toFloat())
+      canvas.drawBitmap(bmp, null, dstRect, bitmapPaint)
     }
 
     super.dispatchDraw(canvas)
@@ -207,6 +151,7 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
       radiusBottomRight: Float,
       radiusBottomLeft: Float,
       boxShadow: String,
+      fillColor: String,
       bleedLeft: Float,
       bleedTop: Float,
       bleedRight: Float,
@@ -214,9 +159,6 @@ class FigmaShadowView(context: Context) : ReactViewGroup(context) {
       scale: Float,
       highQuality: Boolean,
     ): Bitmap?
-
-    @JvmStatic
-    external fun nativeParseColor(token: String, out: FloatArray): Boolean
 
     @JvmStatic
     external fun nativeClearCache()

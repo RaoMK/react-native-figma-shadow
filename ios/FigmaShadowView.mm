@@ -14,10 +14,9 @@ using namespace facebook::react;
 
 @implementation FigmaShadowView {
   CALayer *_shadowLayer;
-  CALayer *_fillLayer;
 
   std::string _shadow;
-  std::string _backgroundColor;
+  std::string _fillColor;
   float _radiusTL;
   float _radiusTR;
   float _radiusBR;
@@ -43,20 +42,14 @@ using namespace facebook::react;
     _props = defaultProps;
     _pixelRatio = (float)[UIScreen mainScreen].scale;
 
-    _fillLayer = [CALayer layer];
     _shadowLayer = [CALayer layer];
-    for (CALayer *layer in @[ _fillLayer, _shadowLayer ]) {
-      layer.actions = @{
-        @"contents" : [NSNull null],
-        @"position" : [NSNull null],
-        @"bounds" : [NSNull null],
-        @"backgroundColor" : [NSNull null],
-      };
-    }
-    // Fill sits under content; shadow (which includes inset darkening) over the
-    // fill but under content.
-    [self.layer insertSublayer:_fillLayer atIndex:0];
-    [self.layer insertSublayer:_shadowLayer atIndex:1];
+    _shadowLayer.actions = @{
+      @"contents" : [NSNull null],
+      @"position" : [NSNull null],
+      @"bounds" : [NSNull null],
+    };
+    // Behind the React-managed child views.
+    [self.layer insertSublayer:_shadowLayer atIndex:0];
   }
   return self;
 }
@@ -68,7 +61,7 @@ using namespace facebook::react;
   const auto &newProps = *std::static_pointer_cast<FigmaShadowViewProps const>(props);
 
   _shadow = newProps.shadow;
-  _backgroundColor = newProps.fillColor;
+  _fillColor = newProps.fillColor;
   _radiusTL = newProps.borderTopLeftRadius;
   _radiusTR = newProps.borderTopRightRadius;
   _radiusBR = newProps.borderBottomRightRadius;
@@ -125,29 +118,12 @@ using namespace facebook::react;
   const float contentH = (float)viewH - _bleedTop - _bleedBottom;
   if (contentW <= 0 || contentH <= 0) {
     _shadowLayer.contents = nil;
-    _fillLayer.backgroundColor = nil;
     return;
   }
 
-  // --- background fill (cheap; stays on the main thread) ---
-  const CGRect contentRect = CGRectMake(_bleedLeft, _bleedTop, contentW, contentH);
-  figmashadow::Color fill;
-  const bool hasFill =
-      !_backgroundColor.empty() && figmashadow::parseColor(_backgroundColor, fill);
-  _fillLayer.frame = contentRect;
-  if (hasFill && fill.a > 0) {
-    _fillLayer.backgroundColor =
-        [UIColor colorWithRed:fill.r green:fill.g blue:fill.b alpha:fill.a].CGColor;
-    // Uniform-radius fast path; differing per-corner radii degrade to the
-    // top-left value for the fill only (the shadow itself is always exact).
-    _fillLayer.cornerRadius = _radiusTL;
-  } else {
-    _fillLayer.backgroundColor = nil;
-  }
-
-  // --- shadow raster (off the main thread; the cache makes repeats instant) ---
   const uint64_t generation = ++_renderGeneration;
   const std::string shadow = _shadow;
+  const std::string fillColor = _fillColor;
   const float radiusTL = _radiusTL, radiusTR = _radiusTR, radiusBR = _radiusBR, radiusBL = _radiusBL;
   const float bleedLeft = _bleedLeft, bleedTop = _bleedTop, bleedRight = _bleedRight, bleedBottom = _bleedBottom;
   const float pixelRatio = _pixelRatio;
@@ -156,7 +132,7 @@ using namespace facebook::react;
   __weak FigmaShadowView *weakSelf = self;
   dispatch_async([FigmaShadowView renderQueue], ^{
     figmashadow::Bitmap bmp = figmashadow::render(
-        contentW, contentH, radiusTL, radiusTR, radiusBR, radiusBL, shadow,
+        contentW, contentH, radiusTL, radiusTR, radiusBR, radiusBL, shadow, fillColor,
         bleedLeft, bleedTop, bleedRight, bleedBottom, pixelRatio, highQuality);
 
     CGImageRef image = bmp.empty() ? nullptr : [FigmaShadowView makeImageFromBitmap:bmp];
@@ -192,10 +168,9 @@ using namespace facebook::react;
 {
   [super prepareForRecycle];
   _shadowLayer.contents = nil;
-  _fillLayer.contents = nil;
-  _fillLayer.backgroundColor = nil;
   _shadow.clear();
-  _backgroundColor.clear();
+  _fillColor.clear();
+  _renderGeneration++;
 }
 
 @end

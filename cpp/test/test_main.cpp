@@ -110,7 +110,7 @@ static void testRasterizer() {
   // A centred 100x60 card, radius 12, single soft drop shadow, no offset.
   float bleedEach = std::ceil(1.5f * 20.0f + 0.0f) + 1.0f;  // ~31
   Bitmap b = render(/*cw*/ 100, /*ch*/ 60, 12, 12, 12, 12,
-                    "0px 0px 20px 0px rgba(0,0,0,0.5)",
+                    "0px 0px 20px 0px rgba(0,0,0,0.5)", "",
                     bleedEach, bleedEach, bleedEach, bleedEach, /*scale*/ 2.0f);
   CHECK(!b.empty());
   CHECK(b.width == static_cast<int>(std::lround((100 + 2 * bleedEach) * 2)));
@@ -153,7 +153,7 @@ static void testRasterizer() {
   CHECK(alphaAt(b, 0, 0) < 0.02f);
 
   // Offset shadow: more shadow below-right than above-left.
-  Bitmap o = render(120, 80, 16, 16, 16, 16, "8px 10px 16px 0px rgba(0,0,0,0.6)",
+  Bitmap o = render(120, 80, 16, 16, 16, 16, "8px 10px 16px 0px rgba(0,0,0,0.6)", "",
                     40, 40, 40, 40, 2.0f);
   CHECK(!o.empty());
   writePPM(o, "/tmp/fs_offset.ppm");
@@ -163,7 +163,7 @@ static void testRasterizer() {
 
   // Inset shadow: darker near the top edge (shadow cast downward), clear in the
   // middle, nothing outside the element.
-  Bitmap in = render(140, 100, 10, 10, 10, 10, "inset 0px 8px 12px 0px rgba(0,0,0,0.7)",
+  Bitmap in = render(140, 100, 10, 10, 10, 10, "inset 0px 8px 12px 0px rgba(0,0,0,0.7)", "",
                      0, 0, 0, 0, 2.0f);
   CHECK(!in.empty());
   CHECK(in.width == 280 && in.height == 200);
@@ -173,10 +173,23 @@ static void testRasterizer() {
   CHECK(topBand > 0.15f);
   CHECK(centre < 0.05f);
 
+  // Inset shadow WITH a fill: the bitmap is now fully opaque over the element
+  // (fill baked in), darker at the top edge, and the fill colour shows through
+  // in the centre.
+  Bitmap inf = render(140, 100, 10, 10, 10, 10, "inset 0px 8px 12px 0px rgba(0,0,0,0.7)",
+                      "#ffffff", 0, 0, 0, 0, 2.0f);
+  CHECK(!inf.empty());
+  auto px = [&](const Bitmap& bm, int x, int y, int c) {
+    return bm.pixels[(static_cast<size_t>(y) * bm.width + x) * 4 + c] / 255.0f;
+  };
+  CHECK(px(inf, inf.width / 2, inf.height / 2, 3) > 0.98f);   // centre opaque
+  CHECK(px(inf, inf.width / 2, inf.height / 2, 0) > 0.90f);   // centre ~white
+  CHECK(px(inf, inf.width / 2, 6, 0) < 0.75f);                // top edge darkened
+
   // Multiple shadows compose; every pixel stays a valid premultiplied colour
   // (each of R, G, B <= A).
   Bitmap m = render(100, 100, 8, 8, 8, 8,
-                    "0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.25)",
+                    "0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.25)", "",
                     40, 40, 40, 40, 1.0f);
   CHECK(!m.empty());
   bool premultValid = true;
@@ -188,7 +201,7 @@ static void testRasterizer() {
 
   // Cache returns an identical buffer.
   Bitmap m2 = render(100, 100, 8, 8, 8, 8,
-                     "0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.25)",
+                     "0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.25)", "",
                      40, 40, 40, 40, 1.0f);
   CHECK(m2.pixels == m.pixels);
   CHECK(cacheSizeBytes() > 0);
@@ -199,10 +212,10 @@ static void testRasterizer() {
 static void testDeterminism() {
   std::printf("determinism\n");
   clearCache();
-  Bitmap a = render(83.5f, 47.25f, 9, 3, 21, 0, "3px -5px 17px 2px rgba(10,20,30,0.44)",
+  Bitmap a = render(83.5f, 47.25f, 9, 3, 21, 0, "3px -5px 17px 2px rgba(10,20,30,0.44)", "",
                     30, 30, 30, 30, 3.0f);
   clearCache();
-  Bitmap b = render(83.5f, 47.25f, 9, 3, 21, 0, "3px -5px 17px 2px rgba(10,20,30,0.44)",
+  Bitmap b = render(83.5f, 47.25f, 9, 3, 21, 0, "3px -5px 17px 2px rgba(10,20,30,0.44)", "",
                     30, 30, 30, 30, 3.0f);
   CHECK(a.pixels == b.pixels);
 }

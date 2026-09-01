@@ -60,6 +60,12 @@ struct RenderRequest {
   Bleed bleed;
   float scale = 1.0f;  // device pixel ratio
   bool highQuality = false;  // use the slower exact rounded-corner quadrature
+
+  // Optional fill for the element box, painted above drop shadows and below
+  // inset shadows (matches CSS background paint order).
+  bool hasFill = false;
+  Color fill;
+
   std::vector<ShadowLayer> layers;
 };
 

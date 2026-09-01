@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-alpha.6
+
+- **Fix inset shadows on Android** (and simplify both platforms). The optional
+  `backgroundColor` fill is now composited into the shadow bitmap by the shared
+  C++ core, in the correct CSS paint order (drop shadows, then fill, then inset
+  shadows). iOS and Android just blit one bitmap — no more separate `CALayer` /
+  `Canvas.drawPath` fill pass that was dropping the inset darkening on Android.
+- Android: JNI copies the bitmap row-by-row when the Android bitmap stride is
+  padded, instead of a flat `memcpy`.
+
 ## 0.1.0-alpha.5
 
 - **iOS: fix `Unimplemented component: <FigmaShadowView>`** at runtime. The

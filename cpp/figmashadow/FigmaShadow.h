@@ -18,7 +18,7 @@ namespace figmashadow {
 Bitmap render(float contentWidth, float contentHeight,
               float radiusTopLeft, float radiusTopRight,
               float radiusBottomRight, float radiusBottomLeft,
-              const std::string& boxShadow,
+              const std::string& boxShadow, const std::string& fillColor,
               float bleedLeft, float bleedTop, float bleedRight, float bleedBottom,
               float scale, bool highQuality = false);
 
